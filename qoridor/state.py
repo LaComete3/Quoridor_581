@@ -4,7 +4,7 @@ State representation for Qoridor game.
 
 from typing import Dict, Any, Tuple, List, Optional
 import numpy as np
-from qoridor.board import Board, WallOrientation
+from .board import Board, WallOrientation
 
 
 class GameState:
@@ -165,16 +165,40 @@ class GameState:
         if self.get_walls_left(self.current_player) <= 0:
             return False
         
-        # Place the wall
-        if self.board.place_wall(row, col, orientation):
-            # Decrement wall count
-            if self.current_player == 1:
-                self.player1_walls_left -= 1
-            else:
-                self.player2_walls_left -= 1
-            return True
+        # Temporarily place the wall
+        if orientation == WallOrientation.HORIZONTAL:
+            self.board.horizontal_walls[row, col] = True
+            # Place the second unit of the wall if in bounds
+            if col + 1 < self.board.size - 1:
+                self.board.horizontal_walls[row, col + 1] = True
+        else:  # VERTICAL
+            self.board.vertical_walls[row, col] = True
+            # Place the second unit of the wall if in bounds
+            if row + 1 < self.board.size - 1:
+                self.board.vertical_walls[row + 1, col] = True
         
-        return False
+        # Check if both players still have a path to their goal
+        path_exists = self.board.has_path_to_goal(1) and self.board.has_path_to_goal(2)
+        
+        if not path_exists:
+            # Remove the wall if it blocks the path
+            if orientation == WallOrientation.HORIZONTAL:
+                self.board.horizontal_walls[row, col] = False
+                if col + 1 < self.board.size - 1:
+                    self.board.horizontal_walls[row, col + 1] = False
+            else:  # VERTICAL
+                self.board.vertical_walls[row, col] = False
+                if row + 1 < self.board.size - 1:
+                    self.board.vertical_walls[row + 1, col] = False
+            return False
+        
+        # Decrement wall count
+        if self.current_player == 1:
+            self.player1_walls_left -= 1
+        else:
+            self.player2_walls_left -= 1
+            
+        return True
     
     def _check_win_condition(self) -> None:
         """Check if the game has ended and update the state accordingly."""

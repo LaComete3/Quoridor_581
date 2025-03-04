@@ -4,9 +4,9 @@ Gym-like environment wrapper for Qoridor.
 
 from typing import Dict, Any, Tuple, List, Optional, Union
 import numpy as np
-from qoridor.game import QoridorGame
-from qoridor.move import Move, MoveType
-from qoridor.board import WallOrientation
+from .game import QoridorGame
+from .move import Move, MoveType
+from .board import WallOrientation
 
 
 class QoridorEnv:
@@ -34,7 +34,11 @@ class QoridorEnv:
         
         # Define action space dimensions
         self.num_move_actions = board_size * board_size
-        self.num_wall_actions = 2 * (board_size - 1) * (board_size - 1)  # Horizontal and vertical
+        # Horizontal walls can be placed at positions (0..board_size-2, 0..board_size-3)
+        # Vertical walls can be placed at positions (0..board_size-3, 0..board_size-2)
+        self.num_h_wall_actions = (board_size - 1) * (board_size - 2)  # Horizontal
+        self.num_v_wall_actions = (board_size - 2) * (board_size - 1)  # Vertical
+        self.num_wall_actions = self.num_h_wall_actions + self.num_v_wall_actions
         self.action_space_size = self.num_move_actions + self.num_wall_actions
         
         # Track episode info
@@ -115,15 +119,23 @@ class QoridorEnv:
         # Wall placement action
         else:
             wall_action = action - self.num_move_actions
-            is_horizontal = wall_action < (self.board_size - 1) * (self.board_size - 1)
+            # We need fewer actions since walls are two units long
+            # Horizontal walls need (board_size-1)*(board_size-2) positions
+            # Vertical walls need (board_size-2)*(board_size-1) positions
+            
+            h_wall_count = (self.board_size - 1) * (self.board_size - 2)
+            is_horizontal = wall_action < h_wall_count
             
             if is_horizontal:
+                # For horizontal walls: row ranges from 0 to board_size-2, col from 0 to board_size-3
                 index = wall_action
+                row = index // (self.board_size - 2)
+                col = index % (self.board_size - 2)
             else:
-                index = wall_action - (self.board_size - 1) * (self.board_size - 1)
-            
-            row = index // (self.board_size - 1)
-            col = index % (self.board_size - 1)
+                # For vertical walls: row ranges from 0 to board_size-3, col from 0 to board_size-2
+                index = wall_action - h_wall_count
+                row = index // (self.board_size - 1)
+                col = index % (self.board_size - 1)
             
             orientation = WallOrientation.HORIZONTAL if is_horizontal else WallOrientation.VERTICAL
             return Move.wall_placement(player, row, col, orientation)
@@ -143,12 +155,20 @@ class QoridorEnv:
         if move.move_type == MoveType.PAWN_MOVE:
             return row * self.board_size + col
         else:  # WALL_PLACEMENT
+            h_wall_count = (self.board_size - 1) * (self.board_size - 2)
+            
             is_horizontal = move.wall_orientation == WallOrientation.HORIZONTAL
             if is_horizontal:
+                # Cannot place horizontal walls at the rightmost column
+                if col >= self.board_size - 2:
+                    raise ValueError(f"Invalid horizontal wall position at column {col}")
                 base = self.num_move_actions
-                index = row * (self.board_size - 1) + col
+                index = row * (self.board_size - 2) + col
             else:
-                base = self.num_move_actions + (self.board_size - 1) * (self.board_size - 1)
+                # Cannot place vertical walls at the bottom row
+                if row >= self.board_size - 2:
+                    raise ValueError(f"Invalid vertical wall position at row {row}")
+                base = self.num_move_actions + h_wall_count
                 index = row * (self.board_size - 1) + col
             
             return base + index

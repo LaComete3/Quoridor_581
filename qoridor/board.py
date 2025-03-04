@@ -350,10 +350,44 @@ class Board:
         """
         valid_positions = []
         
-        for row in range(self.size - 1):
-            for col in range(self.size - 1):
-                if self._is_valid_wall_position(row, col, orientation):
-                    valid_positions.append((row, col))
+        if orientation == WallOrientation.HORIZONTAL:
+            # Horizontal walls can be placed at positions (row, col) where
+            # 0 <= row < size-1 and 0 <= col < size-2
+            for row in range(self.size - 1):
+                for col in range(self.size - 2):  # -2 because walls are 2 units long
+                    if self._is_valid_wall_position(row, col, orientation):
+                        # Temporarily place the wall to check if it blocks paths
+                        self.horizontal_walls[row, col] = True
+                        if col + 1 < self.size - 1:
+                            self.horizontal_walls[row, col + 1] = True
+                            
+                        # Check if both players still have a path to their goal
+                        if self.has_path_to_goal(1) and self.has_path_to_goal(2):
+                            valid_positions.append((row, col))
+                            
+                        # Remove the temporary wall
+                        self.horizontal_walls[row, col] = False
+                        if col + 1 < self.size - 1:
+                            self.horizontal_walls[row, col + 1] = False
+        else:  # VERTICAL
+            # Vertical walls can be placed at positions (row, col) where
+            # 0 <= row < size-2 and 0 <= col < size-1
+            for row in range(self.size - 2):  # -2 because walls are 2 units long
+                for col in range(self.size - 1):
+                    if self._is_valid_wall_position(row, col, orientation):
+                        # Temporarily place the wall to check if it blocks paths
+                        self.vertical_walls[row, col] = True
+                        if row + 1 < self.size - 1:
+                            self.vertical_walls[row + 1, col] = True
+                            
+                        # Check if both players still have a path to their goal
+                        if self.has_path_to_goal(1) and self.has_path_to_goal(2):
+                            valid_positions.append((row, col))
+                            
+                        # Remove the temporary wall
+                        self.vertical_walls[row, col] = False
+                        if row + 1 < self.size - 1:
+                            self.vertical_walls[row + 1, col] = False
         
         return valid_positions
     

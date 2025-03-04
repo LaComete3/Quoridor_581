@@ -5,7 +5,7 @@ Game rules for Qoridor.
 from typing import List, Tuple, Dict, Any, Optional
 import numpy as np
 from queue import Queue
-from qoridor.board import Board, WallOrientation
+from .board import Board, WallOrientation
 
 
 class QoridorRules:
@@ -56,8 +56,14 @@ class QoridorRules:
         # Temporarily place the wall
         if orientation == WallOrientation.HORIZONTAL:
             board.horizontal_walls[row, col] = True
-        else:
+            # Place the second unit of the wall if in bounds
+            if col + 1 < board.size - 1:
+                board.horizontal_walls[row, col + 1] = True
+        else:  # VERTICAL
             board.vertical_walls[row, col] = True
+            # Place the second unit of the wall if in bounds
+            if row + 1 < board.size - 1:
+                board.vertical_walls[row + 1, col] = True
         
         # Check if both players still have a path to their goal
         path_exists = board.has_path_to_goal(1) and board.has_path_to_goal(2)
@@ -65,8 +71,12 @@ class QoridorRules:
         # Remove the temporary wall
         if orientation == WallOrientation.HORIZONTAL:
             board.horizontal_walls[row, col] = False
-        else:
+            if col + 1 < board.size - 1:
+                board.horizontal_walls[row, col + 1] = False
+        else:  # VERTICAL
             board.vertical_walls[row, col] = False
+            if row + 1 < board.size - 1:
+                board.vertical_walls[row + 1, col] = False
         
         return path_exists
     
@@ -188,22 +198,37 @@ class QoridorRules:
             middle_row = (start_row + end_row) // 2
             middle_col = (start_col + end_col) // 2
             
-            # Check if the opponent is in the middle and there's no wall
-            return (middle_row, middle_col) == opponent_pos and \
-                   not board.is_wall_between(start, (middle_row, middle_col)) and \
-                   not board.is_wall_between((middle_row, middle_col), end)
+            # Check if the opponent is in the middle
+            if (middle_row, middle_col) != opponent_pos:
+                return False
+                
+            # Check if there's no wall between start and middle
+            if board.is_wall_between(start, (middle_row, middle_col)):
+                return False
+                
+            # Check if there's no wall between middle and end
+            if board.is_wall_between((middle_row, middle_col), end):
+                return False
+                
+            return True
         
         # Diagonal jumps (opponent adjacent but wall blocks straight jump)
         if abs(end_row - start_row) == 1 and abs(end_col - start_col) == 1:
             # Opponent must be adjacent to start
             if abs(opp_row - start_row) + abs(opp_col - start_col) == 1:
-                # If moving vertically was blocked
-                if opp_row != start_row and opp_col == start_col:
-                    return board.is_wall_between(opponent_pos, (opponent_pos[0], end_col))
+                # If trying to move vertically but blocked
+                if opp_row != start_row:
+                    # Check if there's a wall blocking vertical movement
+                    if board.is_wall_between((start_row, start_col), (opp_row, start_col)):
+                        # Ensure there's no wall blocking the diagonal move
+                        return not board.is_wall_between((opp_row, opp_col), (end_row, end_col))
                 
-                # If moving horizontally was blocked
-                if opp_row == start_row and opp_col != start_col:
-                    return board.is_wall_between(opponent_pos, (end_row, opponent_pos[1]))
+                # If trying to move horizontally but blocked
+                if opp_col != start_col:
+                    # Check if there's a wall blocking horizontal movement
+                    if board.is_wall_between((start_row, start_col), (start_row, opp_col)):
+                        # Ensure there's no wall blocking the diagonal move
+                        return not board.is_wall_between((opp_row, opp_col), (end_row, end_col))
         
         return False
     
