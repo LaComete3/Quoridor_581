@@ -178,14 +178,14 @@ class GameState:
     
     def _check_win_condition(self) -> None:
         """Check if the game has ended and update the state accordingly."""
-        # Player 1 wins by reaching the bottom row
+        # Player 1 wins by reaching the top row
         player1_row, _ = self.board.get_player_position(1)
         if player1_row == self.board_size - 1:
             self.done = True
             self.winner = 1
             return
         
-        # Player 2 wins by reaching the top row
+        # Player 2 wins by reaching the bottom row
         player2_row, _ = self.board.get_player_position(2)
         if player2_row == 0:
             self.done = True

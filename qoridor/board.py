@@ -55,7 +55,29 @@ class Board:
         
         # Set initial player positions
         self._set_initial_positions()
-        
+
+
+        ### Function to visualize and debug ###
+    def debug_print_size(self):
+        """Print the size of the board for debugging purposes."""
+        print(f"Board size: {self.size}")
+
+    def print_walls(self):
+        """Print the positions of all placed walls."""
+        print("Horizontal walls:")
+        for row in range(self.size - 1):
+            for col in range(self.size - 1):
+                if self.horizontal_walls[row, col]:
+                    print(f"  Wall at row {row}, col {col} (HORIZONTAL)")
+
+        print("Vertical walls:")
+        for row in range(self.size - 1):
+            for col in range(self.size - 1):
+                if self.vertical_walls[row, col]:
+                    print(f"  Wall at row {row}, col {col} (VERTICAL)")
+        ### end of debugging functions ###
+
+
     def _set_initial_positions(self):
         """Set the initial positions of the players."""
         # Player 1 starts at the middle of the top row
@@ -202,7 +224,7 @@ class Board:
             elif dc == -1 and col > 0:  # Moving left
                 if col > 0 and row < self.size - 1 and self.vertical_walls[row, col-1]:
                     continue
-            elif dc == 1 and col < self.size - 1:  # Moving right
+            elif dc == 1 and col < self.size - 1 and row < self.size - 1:  # Moving right #! ajout de la condition sur row
                 if self.vertical_walls[row, col]:
                     continue
             
@@ -295,13 +317,13 @@ class Board:
         # Vertical movement
         if col1 == col2:
             min_row = min(row1, row2)
-            if min_row < self.size - 1 and self.horizontal_walls[min_row, col1]:
+            if min_row < self.size - 1 and col1 < self.size - 1 and self.horizontal_walls[min_row, col1]:
                 return True
         
         # Horizontal movement
         if row1 == row2:
             min_col = min(col1, col2)
-            if min_col < self.size - 1 and self.vertical_walls[row1, min_col]:
+            if min_col < self.size - 1 and row1 < self.size - 1 and self.vertical_walls[row1, min_col]:
                 return True
         
         return False
@@ -324,7 +346,7 @@ class Board:
                     valid_positions.append((row, col))
         
         return valid_positions
-    
+
     def _is_valid_wall_position(self, row: int, col: int, orientation: WallOrientation) -> bool:
         """
         Check if a wall can be placed at the specified position.
@@ -345,7 +367,11 @@ class Board:
         if orientation == WallOrientation.HORIZONTAL:
             if self.horizontal_walls[row, col]:
                 return False
-                
+            # Check if this would conflict with an adjacent horizontal wall
+            if col > 0 and self.horizontal_walls[row, col-1]:
+                return False
+            if col < self.size - 2 and self.horizontal_walls[row, col+1]:
+                return False
             # Check if this would cross with a vertical wall
             if col > 0 and self.vertical_walls[row, col-1] and self.vertical_walls[row, col]:
                 return False
@@ -353,7 +379,11 @@ class Board:
         else:  # VERTICAL
             if self.vertical_walls[row, col]:
                 return False
-                
+            # Check if this would conflict with an adjacent vertical wall
+            if row > 0 and self.vertical_walls[row-1, col]:
+                return False
+            if row < self.size - 2 and self.vertical_walls[row+1, col]:
+                return False
             # Check if this would cross with a horizontal wall
             if row > 0 and self.horizontal_walls[row-1, col] and self.horizontal_walls[row, col]:
                 return False
