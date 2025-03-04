@@ -123,7 +123,7 @@ class Board:
     
     def place_wall(self, row: int, col: int, orientation: WallOrientation) -> bool:
         """
-        Place a wall on the board.
+        Place a wall on the board. Walls are 2 units long.
         
         Args:
             row: The starting row of the wall
@@ -137,15 +137,27 @@ class Board:
             return False
         
         if orientation == WallOrientation.HORIZONTAL:
+            # A horizontal wall spans 2 grid cells horizontally
             self.horizontal_walls[row, col] = True
+            
+            # Check if the second part of the wall would be out of bounds
+            if col + 1 < self.size - 1:
+                self.horizontal_walls[row, col + 1] = True
         else:  # VERTICAL
+            # A vertical wall spans 2 grid cells vertically
             self.vertical_walls[row, col] = True
+            
+            # Check if the second part of the wall would be out of bounds
+            if row + 1 < self.size - 1:
+                self.vertical_walls[row + 1, col] = True
             
         return True
     
     def is_wall_at(self, row: int, col: int, orientation: WallOrientation) -> bool:
         """
         Check if there is a wall at the specified position.
+        Remember that walls are 2 units long, so this checks if the position
+        is either the start or continuation of a wall.
         
         Args:
             row: The row to check
@@ -159,9 +171,23 @@ class Board:
             return False
         
         if orientation == WallOrientation.HORIZONTAL:
-            return self.horizontal_walls[row, col]
+            # Check if there's a horizontal wall starting at this position
+            if self.horizontal_walls[row, col]:
+                return True
+                
+            # Check if this position is the second unit of a horizontal wall (wall starts one cell to the left)
+            if col > 0 and self.horizontal_walls[row, col - 1]:
+                return True
         else:  # VERTICAL
-            return self.vertical_walls[row, col]
+            # Check if there's a vertical wall starting at this position
+            if self.vertical_walls[row, col]:
+                return True
+                
+            # Check if this position is the second unit of a vertical wall (wall starts one cell above)
+            if row > 0 and self.vertical_walls[row - 1, col]:
+                return True
+                
+        return False
     
     def get_legal_moves(self, player: int) -> List[Tuple[int, int]]:
         """
@@ -192,44 +218,22 @@ class Board:
             if not self._is_valid_cell((new_row, new_col)):
                 continue
             
-            # Check if there's a wall blocking the move
-            if dr == -1 and row > 0:  # Moving up
-                if row > 0 and col < self.size - 1 and self.horizontal_walls[row-1, col]:
-                    continue
-            elif dr == 1 and row < self.size - 1:  # Moving down
-                if self.horizontal_walls[row, col]:
-                    continue
-            elif dc == -1 and col > 0:  # Moving left
-                if col > 0 and row < self.size - 1 and self.vertical_walls[row, col-1]:
-                    continue
-            elif dc == 1 and col < self.size - 1:  # Moving right
-                if self.vertical_walls[row, col]:
-                    continue
+            # Check if there's a wall blocking the move using is_wall_between
+            if self.is_wall_between((row, col), (new_row, new_col)):
+                continue
             
             # Check if the cell is occupied by the opponent
             if (new_row, new_col) == opponent_pos:
                 # If opponent is in the way, we can jump over if no wall behind
                 jump_row, jump_col = new_row + dr, new_col + dc
                 
-                # Check if the jump is valid
-                if self._is_valid_cell((jump_row, jump_col)):
-                    # Check if there's a wall blocking the jump
-                    if dr == -1 and new_row > 0:  # Jumping up
-                        if new_row > 0 and new_col < self.size - 1 and not self.horizontal_walls[new_row-1, new_col]:
-                            potential_moves.append((jump_row, jump_col))
-                    elif dr == 1 and new_row < self.size - 1:  # Jumping down
-                        if not self.horizontal_walls[new_row, new_col]:
-                            potential_moves.append((jump_row, jump_col))
-                    elif dc == -1 and new_col > 0:  # Jumping left
-                        if new_col > 0 and new_row < self.size - 1 and not self.vertical_walls[new_row, new_col-1]:
-                            potential_moves.append((jump_row, jump_col))
-                    elif dc == 1 and new_col < self.size - 1:  # Jumping right
-                        if not self.vertical_walls[new_row, new_col]:
-                            potential_moves.append((jump_row, jump_col))
-                
-                # Check diagonal jumps (when wall blocks straight jump)
-                diagonal_moves = self._get_diagonal_jumps(player, (new_row, new_col), (dr, dc))
-                potential_moves.extend(diagonal_moves)
+                # Check if the jump is valid (in bounds and no wall)
+                if self._is_valid_cell((jump_row, jump_col)) and not self.is_wall_between((new_row, new_col), (jump_row, jump_col)):
+                    potential_moves.append((jump_row, jump_col))
+                else:
+                    # Check diagonal jumps (when wall blocks straight jump)
+                    diagonal_moves = self._get_diagonal_jumps(player, (new_row, new_col), (dr, dc))
+                    potential_moves.extend(diagonal_moves)
             else:
                 potential_moves.append((new_row, new_col))
         
@@ -239,6 +243,8 @@ class Board:
                            direction: Tuple[int, int]) -> List[Tuple[int, int]]:
         """
         Get possible diagonal jumps over an opponent when straight jump is blocked.
+        In Qoridor, if you can't jump straight over an opponent because there's a wall
+        or edge of the board, you can move diagonally around them.
         
         Args:
             player: The player number
@@ -252,25 +258,41 @@ class Board:
         dr, dc = direction
         jumps = []
         
-        # If moving vertically and blocked
-        if dc == 0:
-            # Try jumping left
-            if self._is_valid_cell((opp_row, opp_col - 1)) and not self.is_wall_between((opp_row, opp_col), (opp_row, opp_col - 1)):
-                jumps.append((opp_row, opp_col - 1))
-            
-            # Try jumping right
-            if self._is_valid_cell((opp_row, opp_col + 1)) and not self.is_wall_between((opp_row, opp_col), (opp_row, opp_col + 1)):
-                jumps.append((opp_row, opp_col + 1))
+        # Calculate the position we were trying to reach by jumping straight
+        straight_jump_row = opp_row + dr
+        straight_jump_col = opp_col + dc
+        straight_jump_blocked = (not self._is_valid_cell((straight_jump_row, straight_jump_col)) or 
+                               self.is_wall_between(opponent_pos, (straight_jump_row, straight_jump_col)))
+        
+        # Only consider diagonal jumps if straight jump is blocked
+        if straight_jump_blocked:
+            # If moving vertically (up or down) and blocked
+            if dc == 0:
+                # Try jumping diagonally left
+                left_pos = (opp_row, opp_col - 1)
+                if (self._is_valid_cell(left_pos) and 
+                    not self.is_wall_between(opponent_pos, left_pos)):
+                    jumps.append(left_pos)
                 
-        # If moving horizontally and blocked
-        if dr == 0:
-            # Try jumping up
-            if self._is_valid_cell((opp_row - 1, opp_col)) and not self.is_wall_between((opp_row, opp_col), (opp_row - 1, opp_col)):
-                jumps.append((opp_row - 1, opp_col))
-            
-            # Try jumping down
-            if self._is_valid_cell((opp_row + 1, opp_col)) and not self.is_wall_between((opp_row, opp_col), (opp_row + 1, opp_col)):
-                jumps.append((opp_row + 1, opp_col))
+                # Try jumping diagonally right
+                right_pos = (opp_row, opp_col + 1)
+                if (self._is_valid_cell(right_pos) and 
+                    not self.is_wall_between(opponent_pos, right_pos)):
+                    jumps.append(right_pos)
+                    
+            # If moving horizontally (left or right) and blocked
+            if dr == 0:
+                # Try jumping diagonally up
+                up_pos = (opp_row - 1, opp_col)
+                if (self._is_valid_cell(up_pos) and 
+                    not self.is_wall_between(opponent_pos, up_pos)):
+                    jumps.append(up_pos)
+                
+                # Try jumping diagonally down
+                down_pos = (opp_row + 1, opp_col)
+                if (self._is_valid_cell(down_pos) and 
+                    not self.is_wall_between(opponent_pos, down_pos)):
+                    jumps.append(down_pos)
         
         return jumps
     
@@ -292,17 +314,27 @@ class Board:
         if abs(row1 - row2) + abs(col1 - col2) != 1:
             return False
         
-        # Vertical movement
+        # Vertical movement (moving up or down)
         if col1 == col2:
             min_row = min(row1, row2)
-            if min_row < self.size - 1 and self.horizontal_walls[min_row, col1]:
-                return True
+            # Check for a horizontal wall at this position
+            if min_row < self.size - 1:
+                # Check the wall at the position and the wall to the left (if any)
+                if col1 < self.size - 1 and self.horizontal_walls[min_row, col1]:
+                    return True
+                if col1 > 0 and self.horizontal_walls[min_row, col1 - 1]:
+                    return True
         
-        # Horizontal movement
+        # Horizontal movement (moving left or right)
         if row1 == row2:
             min_col = min(col1, col2)
-            if min_col < self.size - 1 and self.vertical_walls[row1, min_col]:
-                return True
+            # Check for a vertical wall at this position
+            if min_col < self.size - 1:
+                # Check the wall at the position and the wall above (if any)
+                if row1 < self.size - 1 and self.vertical_walls[row1, min_col]:
+                    return True
+                if row1 > 0 and self.vertical_walls[row1 - 1, min_col]:
+                    return True
         
         return False
     
@@ -341,21 +373,41 @@ class Board:
         if not 0 <= row < self.size - 1 or not 0 <= col < self.size - 1:
             return False
         
-        # Check if there's already a wall at this position
+        # Check if there's already a wall at this position (remember walls are 2 units long)
         if orientation == WallOrientation.HORIZONTAL:
-            if self.horizontal_walls[row, col]:
+            # Need space for a 2-unit horizontal wall
+            if col >= self.size - 1:
+                return False
+                
+            # Check if there's already a horizontal wall at this position or the next position
+            if self.horizontal_walls[row, col] or (col + 1 < self.size - 1 and self.horizontal_walls[row, col + 1]):
                 return False
                 
             # Check if this would cross with a vertical wall
-            if col > 0 and self.vertical_walls[row, col-1] and self.vertical_walls[row, col]:
+            # A horizontal wall at (row,col) would cross with vertical walls at (row,col) and (row,col+1)
+            if self.vertical_walls[row, col]:
+                return False
+            
+            # Check if there's a vertical wall to the right that would be crossed
+            if col + 1 < self.size - 1 and self.vertical_walls[row, col + 1]:
                 return False
                 
         else:  # VERTICAL
-            if self.vertical_walls[row, col]:
+            # Need space for a 2-unit vertical wall
+            if row >= self.size - 1:
+                return False
+                
+            # Check if there's already a vertical wall at this position or the next position
+            if self.vertical_walls[row, col] or (row + 1 < self.size - 1 and self.vertical_walls[row + 1, col]):
                 return False
                 
             # Check if this would cross with a horizontal wall
-            if row > 0 and self.horizontal_walls[row-1, col] and self.horizontal_walls[row, col]:
+            # A vertical wall at (row,col) would cross with horizontal walls at (row,col) and (row+1,col)
+            if self.horizontal_walls[row, col]:
+                return False
+                
+            # Check if there's a horizontal wall below that would be crossed
+            if row + 1 < self.size - 1 and self.horizontal_walls[row + 1, col]:
                 return False
         
         return True
@@ -441,7 +493,11 @@ class Board:
         return adjacent
     
     def __str__(self) -> str:
-        """String representation of the board."""
+        """
+        String representation of the board.
+        Renders the board with players and walls, taking into account
+        that walls are 2 units long.
+        """
         s = ""
         
         # Top border
@@ -460,7 +516,10 @@ class Board:
                 
                 # Vertical wall or separator
                 if j < self.size - 1:
-                    if i < self.size - 1 and self.vertical_walls[i, j]:
+                    # Check if there's a vertical wall at this position or if this is part of a wall
+                    # starting one cell above
+                    if (i < self.size - 1 and self.vertical_walls[i, j]) or \
+                       (i > 0 and i < self.size and self.vertical_walls[i-1, j]):
                         s += "‖"
                     else:
                         s += "|"
@@ -470,7 +529,10 @@ class Board:
             if i < self.size - 1:
                 s += "  | "
                 for j in range(self.size):
-                    if j < self.size - 1 and self.horizontal_walls[i, j]:
+                    # Check if there's a horizontal wall at this position or if this is part of a wall
+                    # starting one cell to the left
+                    if j < self.size - 1 and (self.horizontal_walls[i, j] or \
+                       (j > 0 and self.horizontal_walls[i, j-1])):
                         s += "====="
                     else:
                         s += "-----"

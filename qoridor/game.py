@@ -82,7 +82,6 @@ class QoridorGame:
         # Temporarily set the current player to get the correct legal actions
         self.state.current_player = player
         actions = self.state.get_legal_actions()
-        
         # Restore the original player
         self.state.current_player = original_player
         
