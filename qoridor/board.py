@@ -5,6 +5,7 @@ Board representation for Qoridor.
 import numpy as np
 from enum import Enum
 from typing import Tuple, List, Optional, Set
+from collections import deque
 
 
 class CellType(Enum):
@@ -158,11 +159,21 @@ class Board:
         if not self._is_valid_wall_position(row, col, orientation):
             return False
         
+        # Temporarily place the wall
         if orientation == WallOrientation.HORIZONTAL:
             self.horizontal_walls[row, col] = True
         else:  # VERTICAL
             self.vertical_walls[row, col] = True
-            
+        
+        # Check if both players still have a path to their goal
+        if not (self.has_path_to_goal(1) and self.has_path_to_goal(2)):
+            # Remove the temporary wall if it blocks the path
+            if orientation == WallOrientation.HORIZONTAL:
+                self.horizontal_walls[row, col] = False
+            else:  # VERTICAL
+                self.vertical_walls[row, col] = False
+            return False
+        
         return True
     
     def is_wall_at(self, row: int, col: int, orientation: WallOrientation) -> bool:
@@ -216,16 +227,16 @@ class Board:
             
             # Check if there's a wall blocking the move
             if dr == -1 and row > 0:  # Moving up
-                if row > 0 and col < self.size - 1 and self.horizontal_walls[row-1, col]:
+                if (row > 0 and col < self.size - 1 and self.horizontal_walls[row-1, col]) or (col > 0 and self.horizontal_walls[row-1, col-1]): #! ajout de la cpondition pour la seconde moitié de mur (sur les 4 mouvemments)
                     continue
             elif dr == 1 and row < self.size - 1:  # Moving down
-                if self.horizontal_walls[row, col]:
+                if self.horizontal_walls[row, col] or (col > 0 and self.horizontal_walls[row, col-1]):
                     continue
             elif dc == -1 and col > 0:  # Moving left
-                if col > 0 and row < self.size - 1 and self.vertical_walls[row, col-1]:
+                if (col > 0 and row < self.size - 1 and self.vertical_walls[row, col-1]) or (row > 0 and self.vertical_walls[row-1, col-1]):
                     continue
-            elif dc == 1 and col < self.size - 1 and row < self.size - 1:  # Moving right #! ajout de la condition sur row
-                if self.vertical_walls[row, col]:
+            elif dc == 1 and col < self.size - 1 : # Moving right
+                if (row < self.size - 1 and self.vertical_walls[row, col]) or (row > 0 and self.vertical_walls[row-1, col]):
                     continue
             
             # Check if the cell is occupied by the opponent
@@ -373,7 +384,7 @@ class Board:
             if col < self.size - 2 and self.horizontal_walls[row, col+1]:
                 return False
             # Check if this would cross with a vertical wall
-            if col > 0 and self.vertical_walls[row, col-1] and self.vertical_walls[row, col]:
+            if self.vertical_walls[row, col] :
                 return False
                 
         else:  # VERTICAL
@@ -385,7 +396,7 @@ class Board:
             if row < self.size - 2 and self.vertical_walls[row+1, col]:
                 return False
             # Check if this would cross with a horizontal wall
-            if row > 0 and self.horizontal_walls[row-1, col] and self.horizontal_walls[row, col]:
+            if self.horizontal_walls[row, col]:
                 return False
         
         return True
@@ -403,41 +414,62 @@ class Board:
         row, col = position
         return 0 <= row < self.size and 0 <= col < self.size
     
-    def has_path_to_goal(self, player: int) -> bool:
+
+    def has_path_to_goal(self, player: int) -> bool: #! still some malfunctions and can have impossible moves
         """
-        Check if a player has a path to their goal.
+        Check if the player has a path to their goal.
         
         Args:
             player: The player number (1 or 2)
             
         Returns:
-            True if there is a path to the goal, False otherwise
+            True if the player has a path to their goal, False otherwise
         """
-        # BFS to find path to goal
         if player == 1:
-            start = self.player1_pos
+            start_pos = self.player1_pos
             goal_row = self.size - 1
         else:
-            start = self.player2_pos
+            start_pos = self.player2_pos
             goal_row = 0
         
         visited = set()
-        queue = [start]
-        visited.add(start)
+        queue = deque([start_pos])
         
         while queue:
-            current = queue.pop(0)
-            row, col = current
+            row, col = queue.popleft()
             
-            # Check if we've reached the goal
-            if (player == 1 and row == goal_row) or (player == 2 and row == goal_row):
+            if (row, col) in visited:
+                continue
+            
+            visited.add((row, col))
+            
+            if row == goal_row:
                 return True
             
-            # Get neighbors
-            for next_pos in self.get_adjacent_cells(current):
-                if next_pos not in visited:
-                    visited.add(next_pos)
-                    queue.append(next_pos)
+            # Check the four cardinal directions
+            directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]  # Up, Down, Left, Right
+            
+            for dr, dc in directions:
+                new_row, new_col = row + dr, col + dc
+                
+                if not self._is_valid_cell((new_row, new_col)):
+                    continue
+                
+                # Check if there's a wall blocking the move
+                if dr == -1 and row > 0:  # Moving up
+                    if self.horizontal_walls[row-1, col] or (col < self.size - 1 and self.horizontal_walls[row-1, col+1]):
+                        continue
+                elif dr == 1 and row < self.size - 1:  # Moving down
+                    if self.horizontal_walls[row, col] or (col < self.size - 1 and self.horizontal_walls[row, col+1]):
+                        continue
+                elif dc == -1 and col > 0:  # Moving left
+                    if self.vertical_walls[row, col-1] or (row < self.size - 1 and self.vertical_walls[row+1, col-1]):
+                        continue
+                elif dc == 1 and col < self.size - 1:  # Moving right
+                    if self.vertical_walls[row, col] or (row < self.size - 1 and self.vertical_walls[row+1, col]):
+                        continue
+                
+                queue.append((new_row, new_col))
         
         return False
     
