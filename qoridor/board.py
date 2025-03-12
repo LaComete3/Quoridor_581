@@ -384,13 +384,24 @@ class Board:
         # Vertical movement
         if col1 == col2:
             min_row = min(row1, row2)
-            if min_row < self.size - 1 and col1 < self.size - 1 and self.horizontal_walls[min_row, col1]:
+            if col1 == 0:
+                if self.horizontal_walls[min_row, col1]:
+                    return True
+            elif col1 == self.size - 1:
+                if self.horizontal_walls[min_row, col1 - 1]:
+                    return True
+            elif (self.horizontal_walls[min_row, col1] or self.horizontal_walls[min_row, col1 - 1]):
                 return True
-        
         # Horizontal movement
         if row1 == row2:
             min_col = min(col1, col2)
-            if min_col < self.size - 1 and row1 < self.size - 1 and self.vertical_walls[row1, min_col]:
+            if row1 == 0:
+                if self.vertical_walls[row1, min_col]:
+                    return True
+            elif row1 == self.size - 1:
+                if self.vertical_walls[row1 - 1, min_col]:
+                    return True
+            elif self.vertical_walls[row1, min_col] or self.vertical_walls[row1 - 1, min_col]:
                 return True
         
         return False
