@@ -9,19 +9,6 @@ Quoridor_581 is an implementation of the Quoridor board game. This project inclu
 - Visualization tools to render the game state.
 - Agents including random, DQN-based and MCTS-based agents for playing the game.
 
-## Installation
-1. Clone the repository:
-    ```sh
-    git clone https://github.com/yourusername/Quoridor_581.git
-    ```
-2. Navigate to the project directory:
-    ```sh
-    cd Quoridor_581
-    ```
-3. Install the required dependencies:
-    ```sh
-    pip install -r requirements.txt
-    ```
 
 ## Usage
 ### Running the Game
