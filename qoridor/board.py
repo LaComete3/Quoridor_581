@@ -216,7 +216,7 @@ class Board:
         potential_moves = []
         
         # Check the four cardinal directions
-        directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]  # Up, Down, Left, Right
+        directions = [(1, 0), (-1, 0), (0, -1), (0, 1)]  # Up, Down, Left, Right
         
         for dr, dc in directions:
             new_row, new_col = row + dr, col + dc
@@ -226,19 +226,47 @@ class Board:
                 continue
             
             # Check if there's a wall blocking the move
-            if dr == -1 and row > 0:  # Moving up
-                if (row > 0 and col < self.size - 1 and self.horizontal_walls[row-1, col]) or (col > 0 and self.horizontal_walls[row-1, col-1]): #! ajout de la cpondition pour la seconde moitié de mur (sur les 4 mouvemments)
+            if dr == 1 and row < self.size -1 :  # Moving up
+                if col == 0 :
+                    if self.horizontal_walls[row, col]:# Mur au dessus du joueur
+                        continue
+                elif col == self.size - 1:
+                    if self.horizontal_walls[row, col-1]:
+                        continue
+                elif (self.horizontal_walls[row, col] or self.horizontal_walls[row, col-1]):
                     continue
-            elif dr == 1 and row < self.size - 1:  # Moving down
-                if self.horizontal_walls[row, col] or (col > 0 and self.horizontal_walls[row, col-1]):
+
+            elif dr == -1 and row > 0:  # Moving down
+                if col == 0 :
+                    if self.horizontal_walls[row-1, col]:
+                        continue
+                elif col == self.size - 1 :
+                    if self.horizontal_walls[row-1, col-1]:
+                        continue
+                elif (self.horizontal_walls[row-1, col] or self.horizontal_walls[row-1, col-1]):
                     continue
+
             elif dc == -1 and col > 0:  # Moving left
-                if (col > 0 and row < self.size - 1 and self.vertical_walls[row, col-1]) or (row > 0 and self.vertical_walls[row-1, col-1]):
+                if row == 0 :
+                    if self.vertical_walls[row, col-1]:
+                        continue
+                elif row == self.size - 1 : 
+                    if self.vertical_walls[row-1, col-1]:
+                        continue
+                elif (self.vertical_walls[row, col-1] or self.vertical_walls[row-1, col-1]):
                     continue
-            elif dc == 1 and col < self.size - 1 : # Moving right
-                if (row < self.size - 1 and self.vertical_walls[row, col]) or (row > 0 and self.vertical_walls[row-1, col]):
+
+            elif dc == 1 and col < self.size - 1:  # Moving right
+                if row == 0:
+                    if self.vertical_walls[row, col]:
+                        continue
+                elif row == self.size - 1 : 
+                    if self.vertical_walls[row-1, col]:
+                        continue
+                elif self.vertical_walls[row, col] or self.vertical_walls[row-1, col]:
                     continue
-            
+
+
             # Check if the cell is occupied by the opponent
             if (new_row, new_col) == opponent_pos:
                 # If opponent is in the way, we can jump over if no wall behind
@@ -247,17 +275,45 @@ class Board:
                 # Check if the jump is valid
                 if self._is_valid_cell((jump_row, jump_col)):
                     # Check if there's a wall blocking the jump
-                    if dr == -1 and new_row > 0:  # Jumping up
-                        if new_row > 0 and new_col < self.size - 1 and not self.horizontal_walls[new_row-1, new_col]:
+                    if dr == 1 and new_row < self.size -1 :  # Jumping up
+                        possible = True
+                        if new_col == 0 and self.horizontal_walls[new_row, new_col]:
+                            possible = False
+                        elif new_col == self.size - 1 and self.horizontal_walls[new_row, new_col-1]:
+                                possible = False
+                        elif (self.horizontal_walls[new_row, new_col] or self.horizontal_walls[new_row, new_col-1]):
+                            possible = False
+                        if possible : 
                             potential_moves.append((jump_row, jump_col))
-                    elif dr == 1 and new_row < self.size - 1:  # Jumping down
-                        if not self.horizontal_walls[new_row, new_col]:
+                    elif dr == -1 and new_row > 0:  # Jumping down
+                        possible = True
+                        if new_col == 0 and self.horizontal_walls[new_row-1, new_col]:
+                            possible = False
+                        elif new_col == self.size - 1 and self.horizontal_walls[new_row-1, new_col-1]:
+                            possible = False
+                        elif (self.horizontal_walls[new_row-1, new_col] or self.horizontal_walls[new_row-1, new_col-1]):
+                            possible = False
+                        if possible :
                             potential_moves.append((jump_row, jump_col))
                     elif dc == -1 and new_col > 0:  # Jumping left
-                        if new_col > 0 and new_row < self.size - 1 and not self.vertical_walls[new_row, new_col-1]:
+                        possible = True
+                        if new_row == 0 and self.vertical_walls[new_row, new_col-1]:
+                            possible = False
+                        elif new_row == self.size - 1 and self.vertical_walls[new_row-1, new_col-1]:
+                            possible = False
+                        elif (self.vertical_walls[new_row, new_col-1] or self.vertical_walls[new_row-1, new_col-1]):
+                            possible = False
+                        if possible :
                             potential_moves.append((jump_row, jump_col))
                     elif dc == 1 and new_col < self.size - 1:  # Jumping right
-                        if not self.vertical_walls[new_row, new_col]:
+                        possible = True
+                        if new_row == 0 and self.vertical_walls[new_row, new_col]:
+                            possible = False
+                        elif new_row == self.size - 1 and self.vertical_walls[new_row-1, new_col]:
+                            possible = False
+                        elif self.vertical_walls[new_row, new_col] or self.vertical_walls[new_row-1, new_col]:
+                            possible = False
+                        if possible :
                             potential_moves.append((jump_row, jump_col))
                 
                 # Check diagonal jumps (when wall blocks straight jump)
@@ -447,7 +503,7 @@ class Board:
                 return True
             
             # Check the four cardinal directions
-            directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]  # Up, Down, Left, Right
+            directions = [(1, 0), (-1, 0), (0, -1), (0, 1)]  # Up, Down, Left, Right
             
             for dr, dc in directions:
                 new_row, new_col = row + dr, col + dc
@@ -456,17 +512,44 @@ class Board:
                     continue
                 
                 # Check if there's a wall blocking the move
-                if dr == -1 and row > 0:  # Moving up
-                    if self.horizontal_walls[row-1, col] or (col < self.size - 1 and self.horizontal_walls[row-1, col+1]):
+                if dr == 1 and row < self.size -1 :  # Moving up
+                    if col == 0 :
+                        if self.horizontal_walls[row, col]:
+                            continue
+                    elif col == self.size - 1:
+                        if self.horizontal_walls[row, col-1]:
+                            continue
+                    elif (self.horizontal_walls[row, col] or self.horizontal_walls[row, col-1]):
                         continue
-                elif dr == 1 and row < self.size - 1:  # Moving down
-                    if self.horizontal_walls[row, col] or (col < self.size - 1 and self.horizontal_walls[row, col+1]):
+
+                elif dr == -1 and row > 0:  # Moving down
+                    if col == 0 :
+                        if self.horizontal_walls[row-1, col]:
+                            continue
+                    elif col == self.size - 1 :
+                        if self.horizontal_walls[row-1, col-1]:
+                            continue
+                    elif (self.horizontal_walls[row-1, col] or self.horizontal_walls[row-1, col-1]):
                         continue
+
                 elif dc == -1 and col > 0:  # Moving left
-                    if self.vertical_walls[row, col-1] or (row < self.size - 1 and self.vertical_walls[row+1, col-1]):
+                    if row == 0 :
+                        if self.vertical_walls[row, col-1]:
+                            continue
+                    elif row == self.size - 1 : 
+                        if self.vertical_walls[row-1, col-1]:
+                            continue
+                    elif (self.vertical_walls[row, col-1] or self.vertical_walls[row-1, col-1]):
                         continue
+
                 elif dc == 1 and col < self.size - 1:  # Moving right
-                    if self.vertical_walls[row, col] or (row < self.size - 1 and self.vertical_walls[row+1, col]):
+                    if row == 0:
+                        if self.vertical_walls[row, col]:
+                            continue
+                    elif row == self.size - 1 : 
+                        if self.vertical_walls[row-1, col]:
+                            continue
+                    elif self.vertical_walls[row, col] or self.vertical_walls[row-1, col]:
                         continue
                 
                 queue.append((new_row, new_col))
