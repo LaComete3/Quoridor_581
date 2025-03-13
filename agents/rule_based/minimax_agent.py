@@ -89,7 +89,7 @@ class MinimaxAgent:
             # Get score for this move
             if self.player == game.get_current_player():
                 # Maximizing player
-                score = self._minimax(game_copy, 1, alpha, beta, False)
+                score = self._minimax(game_copy, 1, alpha, beta, True)
                 
                 if score > best_score:
                     best_score = score
@@ -98,7 +98,7 @@ class MinimaxAgent:
                 alpha = max(alpha, best_score)
             else:
                 # Minimizing player
-                score = self._minimax(game_copy, 1, alpha, beta, True)
+                score = self._minimax(game_copy, 1, alpha, beta, False)
                 
                 if score < best_score:
                     best_score = score
