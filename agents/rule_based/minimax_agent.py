@@ -6,11 +6,11 @@ import time
 import random
 from typing import Dict, Any, List, Tuple, Optional, Callable
 import numpy as np
-from ...qoridor.game import QoridorGame
-from ...qoridor.move import Move, MoveType
-from ...qoridor.state import GameState
-from ...qoridor.board import Board, WallOrientation
-from ...qoridor.rules import QoridorRules
+from qoridor.game import QoridorGame
+from qoridor.move import Move, MoveType
+from qoridor.state import GameState
+from qoridor.board import Board, WallOrientation
+from qoridor.rules import QoridorRules
 
 
 class MinimaxAgent:

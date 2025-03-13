@@ -9,6 +9,8 @@ from qoridor.game import QoridorGame
 from qoridor.environment import QoridorEnv
 from qoridor.visualization import QoridorVisualizer, render_move_sequence
 from agents.rule_based.minimax_agent import MinimaxAgent
+from qoridor.board import WallOrientation
+from qoridor.move import MoveType
 
 def play_game(agent1, agent2, board_size=9, num_walls=10, render=True, delay=0.5, 
              max_steps=1000, save_gif=None):
@@ -284,7 +286,7 @@ class PathRushAgent:
         board_size = observation['board'].shape[0]
         
         # Create game state from observation
-        game = QoridorGame(board_size=board_size, num_walls=10)
+        game = QoridorGame(board_size=board_size, num_walls=3)
         
         # Set the board state
         game.state.board.grid = observation['board'].copy()
@@ -319,35 +321,36 @@ class PathRushAgent:
                     row, col = move.position
                     return row * board_size + col
         
+        print("No path found. Fallback to random move.")
         # Fallback to random move if no path or other issue
         return RandomAgent(player=self.player).get_action(observation)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Qoridor Agent Runner")
-    parser.add_argument("--board_size", type=int, default=9, help="Board size")
-    parser.add_argument("--num_walls", type=int, default=10, help="Number of walls per player")
+    parser.add_argument("--board_size", type=int, default=5, help="Board size")
+    parser.add_argument("--num_walls", type=int, default=3, help="Number of walls per player")
     parser.add_argument("--num_games", type=int, default=5, help="Number of games to play")
     parser.add_argument("--minimax_depth", type=int, default=3, help="Minimax search depth")
-    parser.add_argument("--time_limit", type=float, default=1.0, help="Time limit per move in seconds")
+    parser.add_argument("--time_limit", type=float, default=3.0, help="Time limit per move in seconds")
     parser.add_argument("--save_gif", type=str, help="Save the last game as an animated GIF")
     
     args = parser.parse_args()
     
     # Create agents
-    random_agent_obj = RandomAgent(player=1)
-    path_rush_agent = PathRushAgent(player=1)
+    random_agent_obj = RandomAgent(player=2)
+    path_rush_agent = PathRushAgent(player=2)
     minimax_agent = create_minimax_agent(
-        player=2, 
+        player=1, 
         depth=args.minimax_depth,
         time_limit=args.time_limit
     )
     
     # Evaluate a random agent against minimax
     print("\n=== Random Agent vs Minimax ===")
-    evaluate_agents(
-        random_agent_obj, 
+    evaluate_agents( 
         minimax_agent,
+        random_agent_obj,
         num_games=args.num_games,
         board_size=args.board_size,
         num_walls=args.num_walls
@@ -356,8 +359,8 @@ if __name__ == "__main__":
     # Evaluate a path rush agent against minimax
     print("\n=== Path Rush Agent vs Minimax ===")
     evaluate_agents(
-        path_rush_agent, 
         minimax_agent,
+        path_rush_agent, 
         num_games=args.num_games,
         board_size=args.board_size,
         num_walls=args.num_walls

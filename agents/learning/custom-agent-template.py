@@ -4,10 +4,9 @@ Template for implementing your own Qoridor agent.
 
 import numpy as np
 from typing import Dict, Any, List, Tuple, Optional
-from ...qoridor.game import QoridorGame
-from ...qoridor.move import Move, MoveType
-from ...qoridor.board import WallOrientation
-
+from qoridor.game import QoridorGame
+from qoridor.move import Move, MoveType
+from qoridor.board import WallOrientation
 
 class CustomAgent:
     """

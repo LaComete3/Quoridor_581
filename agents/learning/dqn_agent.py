@@ -12,10 +12,10 @@ from tensorflow.keras.models import Sequential, Model, load_model
 from tensorflow.keras.layers import Dense, Conv2D, Flatten, Input, Concatenate
 from tensorflow.keras.optimizers import Adam
 
-from ...qoridor.game import QoridorGame
-from ...qoridor.move import Move, MoveType
-from ...qoridor.board import WallOrientation
-from ...qoridor.rules import QoridorRules
+from qoridor.game import QoridorGame
+from qoridor.move import Move, MoveType
+from qoridor.board import WallOrientation
+from qoridor.rules import QoridorRules
 
 
 class ReplayBuffer:
