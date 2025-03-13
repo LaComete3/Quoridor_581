@@ -308,7 +308,7 @@ class PathRushAgent:
         
         # Get the shortest path to goal
         current_player = game.get_current_player()
-        shortest_path = QoridorRules.find_shortest_path(game.state.board, current_player)
+        shortest_path = QoridorRules.find_shortest_path(game, current_player)
         
         # If there's a path, move along it
         if shortest_path and len(shortest_path) > 1:
@@ -330,9 +330,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Qoridor Agent Runner")
     parser.add_argument("--board_size", type=int, default=5, help="Board size")
     parser.add_argument("--num_walls", type=int, default=3, help="Number of walls per player")
-    parser.add_argument("--num_games", type=int, default=5, help="Number of games to play")
+    parser.add_argument("--num_games", type=int, default=20, help="Number of games to play")
     parser.add_argument("--minimax_depth", type=int, default=3, help="Minimax search depth")
-    parser.add_argument("--time_limit", type=float, default=3.0, help="Time limit per move in seconds")
+    parser.add_argument("--time_limit", type=float, default=5.0, help="Time limit per move in seconds")
     parser.add_argument("--save_gif", type=str, help="Save the last game as an animated GIF")
     
     args = parser.parse_args()
@@ -346,21 +346,21 @@ if __name__ == "__main__":
         time_limit=args.time_limit
     )
     
-    # Evaluate a random agent against minimax
-    print("\n=== Random Agent vs Minimax ===")
-    evaluate_agents( 
-        minimax_agent,
-        random_agent_obj,
-        num_games=args.num_games,
-        board_size=args.board_size,
-        num_walls=args.num_walls
-    )
+    # # Evaluate a random agent against minimax
+    # print("\n=== Random Agent vs Minimax ===")
+    # evaluate_agents( 
+    #     minimax_agent,
+    #     random_agent_obj,
+    #     num_games=args.num_games,
+    #     board_size=args.board_size,
+    #     num_walls=args.num_walls
+    # )
     
     # Evaluate a path rush agent against minimax
     print("\n=== Path Rush Agent vs Minimax ===")
     evaluate_agents(
         minimax_agent,
-        path_rush_agent, 
+        minimax_agent, 
         num_games=args.num_games,
         board_size=args.board_size,
         num_walls=args.num_walls
@@ -370,7 +370,7 @@ if __name__ == "__main__":
     if args.save_gif:
         print(f"\nPlaying a sample game and saving as {args.save_gif}...")
         play_game(
-            path_rush_agent, 
+            minimax_agent, 
             minimax_agent,
             board_size=args.board_size,
             num_walls=args.num_walls,

@@ -62,7 +62,34 @@ class QoridorGame:
                 self._trigger_callback('on_game_end', winner)
         
         return success
-    
+    def get_legal_displacements(self, player: Optional[int] = None) -> List[Move]:
+        """
+        Get all legal moves for a player.
+        
+        Args:
+            player: The player to get moves for (default: current player)
+            
+        Returns:
+            A list of legal Move objects
+        """
+        if player is None:
+            player = self.state.current_player
+        
+        # Save the current player
+        original_player = self.state.current_player
+        
+        # Temporarily set the current player to get the correct legal actions
+        self.state.current_player = player
+        actions = self.state.get_legal_displacements()
+        # Restore the original player
+        self.state.current_player = original_player
+        
+        # Convert action dictionaries to Move objects
+        moves = []
+        for action in actions:
+            moves.append(Move.pawn_move(player, action['position'][0], action['position'][1]))
+        
+        return moves
     def get_legal_moves(self, player: Optional[int] = None) -> List[Move]:
         """
         Get all legal moves for a player.
