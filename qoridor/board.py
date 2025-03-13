@@ -277,9 +277,11 @@ class Board:
                     # Check if there's a wall blocking the jump
                     if dr == 1 and new_row < self.size -1 :  # Jumping up
                         possible = True
-                        if new_col == 0 and self.horizontal_walls[new_row, new_col]:
-                            possible = False
-                        elif new_col == self.size - 1 and self.horizontal_walls[new_row, new_col-1]:
+                        if new_col == 0:
+                            if self.horizontal_walls[new_row, new_col]:
+                                possible = False
+                        elif new_col == self.size - 1 :
+                            if self.horizontal_walls[new_row, new_col-1]:
                                 possible = False
                         elif (self.horizontal_walls[new_row, new_col] or self.horizontal_walls[new_row, new_col-1]):
                             possible = False
@@ -287,30 +289,36 @@ class Board:
                             potential_moves.append((jump_row, jump_col))
                     elif dr == -1 and new_row > 0:  # Jumping down
                         possible = True
-                        if new_col == 0 and self.horizontal_walls[new_row-1, new_col]:
-                            possible = False
-                        elif new_col == self.size - 1 and self.horizontal_walls[new_row-1, new_col-1]:
-                            possible = False
+                        if new_col == 0 :
+                            if self.horizontal_walls[new_row-1, new_col]:
+                                possible = False
+                        elif new_col == self.size - 1 :
+                            if self.horizontal_walls[new_row-1, new_col-1]:
+                                possible = False
                         elif (self.horizontal_walls[new_row-1, new_col] or self.horizontal_walls[new_row-1, new_col-1]):
                             possible = False
                         if possible :
                             potential_moves.append((jump_row, jump_col))
                     elif dc == -1 and new_col > 0:  # Jumping left
                         possible = True
-                        if new_row == 0 and self.vertical_walls[new_row, new_col-1]:
-                            possible = False
-                        elif new_row == self.size - 1 and self.vertical_walls[new_row-1, new_col-1]:
-                            possible = False
+                        if new_row == 0 : 
+                            if self.vertical_walls[new_row, new_col-1]:
+                                possible = False
+                        elif new_row == self.size - 1 :
+                            if self.vertical_walls[new_row-1, new_col-1]:
+                                possible = False
                         elif (self.vertical_walls[new_row, new_col-1] or self.vertical_walls[new_row-1, new_col-1]):
                             possible = False
                         if possible :
                             potential_moves.append((jump_row, jump_col))
                     elif dc == 1 and new_col < self.size - 1:  # Jumping right
                         possible = True
-                        if new_row == 0 and self.vertical_walls[new_row, new_col]:
-                            possible = False
-                        elif new_row == self.size - 1 and self.vertical_walls[new_row-1, new_col]:
-                            possible = False
+                        if new_row == 0 :
+                            if self.vertical_walls[new_row, new_col]:
+                                possible = False
+                        elif new_row == self.size - 1 :
+                            if self.vertical_walls[new_row-1, new_col]:
+                                possible = False
                         elif self.vertical_walls[new_row, new_col] or self.vertical_walls[new_row-1, new_col]:
                             possible = False
                         if possible :
