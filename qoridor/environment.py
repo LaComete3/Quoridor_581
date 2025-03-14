@@ -36,8 +36,8 @@ class QoridorEnv:
         self.num_move_actions = board_size * board_size
         # Horizontal walls can be placed at positions (0..board_size-2, 0..board_size-3)
         # Vertical walls can be placed at positions (0..board_size-3, 0..board_size-2)
-        self.num_h_wall_actions = (board_size - 1) * (board_size - 2)  # Horizontal
-        self.num_v_wall_actions = (board_size - 2) * (board_size - 1)  # Vertical
+        self.num_h_wall_actions = (board_size - 1) * (board_size - 1)  # Horizontal
+        self.num_v_wall_actions = (board_size - 1) * (board_size - 1)  # Vertical #! ce n'est pas -2 mais -1
         self.num_wall_actions = self.num_h_wall_actions + self.num_v_wall_actions
         self.action_space_size = self.num_move_actions + self.num_wall_actions
         
@@ -160,13 +160,13 @@ class QoridorEnv:
             is_horizontal = move.wall_orientation == WallOrientation.HORIZONTAL
             if is_horizontal:
                 # Cannot place horizontal walls at the rightmost column
-                if col >= self.board_size - 2:
+                if col > self.board_size - 2: #! we can place it between 0 and self.board_size-2 included ( I changed >= to >)
                     raise ValueError(f"Invalid horizontal wall position at column {col}")
                 base = self.num_move_actions
                 index = row * (self.board_size - 2) + col
             else:
                 # Cannot place vertical walls at the bottom row
-                if row >= self.board_size - 2:
+                if row > self.board_size - 2: #! same
                     raise ValueError(f"Invalid vertical wall position at row {row}")
                 base = self.num_move_actions + h_wall_count
                 index = row * (self.board_size - 1) + col
