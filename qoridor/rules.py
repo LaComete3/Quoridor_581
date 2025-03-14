@@ -6,6 +6,7 @@ from typing import List, Tuple, Dict, Any, Optional
 import numpy as np
 from queue import Queue
 from .board import Board, WallOrientation
+from .game import QoridorGame
 
 
 class QoridorRules:
@@ -81,40 +82,92 @@ class QoridorRules:
         return path_exists
     
     @staticmethod
-    def find_shortest_path(board: Board, player: int) -> Optional[List[Tuple[int, int]]]:
+    def find_shortest_path(game: QoridorGame, player: int) -> Optional[List[Tuple[int, int]]]:
         """
-        Find the shortest path to the goal for a player using BFS.
+        Find the shortest path to the goal for a player using Dijkstra's algorithm.
         
         Args:
-            board: The game board
+            game: The game object
             player: The player number (1 or 2)
             
         Returns:
             A list of positions forming the shortest path, or None if no path exists
         """
+        # Save the current player to restore later
+        current_player = game.get_current_player()
+        
         # Get the player's position
-        start = board.get_player_position(player)
+        start = game.state.board.get_player_position(player)
         
         # Determine the goal row
-        goal_row = board.size - 1 if player == 1 else 0
+        board_size = game.state.board_size
+        goal_row = board_size - 1 if player == 1 else 0
         
-        # BFS to find the shortest path
-        visited = set([start])
-        queue = Queue()
-        queue.put((start, [start]))  # (position, path)
+        # Initialize distances with infinity
+        distances = {start: 0}
+        previous = {}
         
-        while not queue.empty():
-            (row, col), path = queue.get()
+        # Priority queue for Dijkstra's algorithm
+        # Using a simple list as a priority queue for simplicity
+        # (position, distance)
+        queue = [(start, 0)]
+        visited = set()
+        
+        while queue:
+            # Find the position with the smallest distance
+            current_pos, current_dist = min(queue, key=lambda x: x[1])
+            queue.remove((current_pos, current_dist))
             
-            # Check if we've reached the goal
-            if (player == 1 and row == goal_row) or (player == 2 and row == goal_row):
-                return path
+            # If we've reached the goal row, reconstruct and return the path
+            if (player == 1 and current_pos[0] == goal_row) or (player == 2 and current_pos[0] == goal_row):
+                # Reconstruct the path
+                path = []
+                while current_pos in previous:
+                    path.append(current_pos)
+                    current_pos = previous[current_pos]
+                path.append(start)
+                return list(reversed(path))
             
-            # Explore neighbors
-            for next_pos in board.get_adjacent_cells((row, col)):
-                if next_pos not in visited:
-                    visited.add(next_pos)
-                    queue.put((next_pos, path + [next_pos]))
+            # Mark as visited
+            visited.add(current_pos)
+            
+            # Temporarily set the current player to get legal moves
+            game.state.current_player = player
+            
+            # Move the player to the current position temporarily to get legal moves
+            original_pos = game.state.board.get_player_position(player)
+            game.state.board.move_player(player, current_pos)
+            
+            # Get legal moves from this position
+            legal_moves = game.get_legal_displacements(player)
+            
+            # Move the player back to their original position
+            game.state.board.move_player(player, original_pos)
+            
+            # Process each neighbor (legal move)
+            for move in legal_moves:
+                next_pos = move.position
+                
+                # Skip if already visited
+                if next_pos in visited:
+                    continue
+                
+                # Each step has a distance of 1
+                distance = current_dist + 1
+                
+                # If this is a better path to the neighbor
+                if next_pos not in distances or distance < distances[next_pos]:
+                    distances[next_pos] = distance
+                    previous[next_pos] = current_pos
+                    
+                    # Add to queue if not already there
+                    queue_item = [(p, d) for p, d in queue if p == next_pos]
+                    if queue_item:
+                        queue.remove(queue_item[0])
+                    queue.append((next_pos, distance))
+        
+        # Restore the original current player
+        game.state.current_player = current_player
         
         # No path found
         return None

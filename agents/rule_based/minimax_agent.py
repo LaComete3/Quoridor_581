@@ -89,7 +89,7 @@ class MinimaxAgent:
             # Get score for this move
             if self.player == game.get_current_player():
                 # Maximizing player
-                score = self._minimax(game_copy, 1, alpha, beta, True)
+                score = self._minimax(game_copy, 1, alpha, beta, False)
                 
                 if score > best_score:
                     best_score = score
@@ -98,7 +98,7 @@ class MinimaxAgent:
                 alpha = max(alpha, best_score)
             else:
                 # Minimizing player
-                score = self._minimax(game_copy, 1, alpha, beta, False)
+                score = self._minimax(game_copy, 1, alpha, beta, True)
                 
                 if score < best_score:
                     best_score = score
@@ -227,12 +227,11 @@ class MinimaxAgent:
             A numerical evaluation score (higher is better for player)
         """
         state = game.state
-        board = state.board
         opponent = 3 - player  # 1->2, 2->1
         
         # Calculate distances to goal for both players
-        player_path = QoridorRules.find_shortest_path(board, player)
-        opponent_path = QoridorRules.find_shortest_path(board, opponent)
+        player_path = QoridorRules.find_shortest_path(game, player)
+        opponent_path = QoridorRules.find_shortest_path(game, opponent)
         
         if player_path is None:
             return -1000  # No path to goal for player
@@ -249,27 +248,12 @@ class MinimaxAgent:
         # Wall factor: having more walls is an advantage
         player_walls = state.get_walls_left(player)
         opponent_walls = state.get_walls_left(opponent)
-        wall_factor = 0.5 * (player_walls - opponent_walls)
-        
-        # Position factor: being closer to goal row is good
-        player_pos = board.get_player_position(player)
-        opponent_pos = board.get_player_position(opponent)
-        
-        # Determine goal rows
-        player_goal = board.size - 1 if player == 1 else 0
-        opponent_goal = board.size - 1 if opponent == 1 else 0
-        
-        # Calculate row distance to goal
-        player_row_distance = abs(player_pos[0] - player_goal)
-        opponent_row_distance = abs(opponent_pos[0] - opponent_goal)
-        
-        row_score = opponent_row_distance - player_row_distance
+        wall_factor = 0.2 * (player_walls - opponent_walls)
         
         # Combine all factors with weights
         score = (
             3.0 * distance_score +  # Path length difference (most important)
-            1.0 * wall_factor +     # Wall advantage
-            0.5 * row_score         # Row position advantage
+            1.0 * wall_factor       # Wall advantage
         )
         
         return score

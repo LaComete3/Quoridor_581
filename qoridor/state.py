@@ -48,7 +48,23 @@ class GameState:
         self.done = False
         self.winner = None
         self.action_history = []
-    
+    def get_legal_displacements(self) -> List[Dict[str, Any]]:
+        """
+        Get all legal displacements for the current player.
+        
+        Returns:
+            A list of legal displacement dictionaries
+        """
+        displacements = []
+        
+        # Displacement actions
+        for row, col in self.board.get_legal_moves(self.current_player):
+            displacements.append({
+                'type': 'move',
+                'position': (row, col)
+            })
+        
+        return displacements
     def get_legal_actions(self) -> List[Dict[str, Any]]:
         """
         Get all legal actions for the current player.
