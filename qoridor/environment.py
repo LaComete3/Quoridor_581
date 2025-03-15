@@ -7,6 +7,7 @@ import numpy as np
 from .game import QoridorGame
 from .move import Move, MoveType
 from .board import WallOrientation
+from qoridor.rules import QoridorRules
 
 
 class QoridorEnv:
@@ -31,6 +32,8 @@ class QoridorEnv:
         self.game = QoridorGame(board_size=board_size, num_walls=num_walls)
         self.opponent = opponent
         self.player = 1  # Agent is always player 1 for simplicity
+        self.previous_player_distance = None
+        self.previous_opponent_distance = None
         
         # Define action space dimensions
         self.num_move_actions = board_size * board_size
@@ -200,13 +203,54 @@ class QoridorEnv:
         if done:
             winner = self.game.get_winner()
             if winner == self.player:  # Agent won
-                return 1.0
+                return 100.0
             else:  # Agent lost
-                return -1.0
+                return -100.0
         
-        # Optionally add intermediate rewards here
-        # For example, reward for decreasing distance to goal
-        return 0.0
+        #! the previous reward stopped here with +1 for win -1 for loss and 0 if not done
+
+        player_distance = self._calculate_distance_to_goal(self.player)
+        opponent_distance = self._calculate_distance_to_goal(3 - self.player) # opponent's player number is 3 - self.player for a 2 player game numbered 1 and 2.
+
+        # Reward for decreasing distance to goal
+        reward = 0.0
+        
+        if self.previous_player_distance is None:
+            self.previous_player_distance = player_distance
+        if self.previous_opponent_distance is None:
+            self.previous_opponent_distance = opponent_distance
+
+        if player_distance < self.previous_player_distance:
+            reward += 1
+        elif player_distance > self.previous_player_distance:
+            reward -= 1
+
+                # Reward for increasing opponent's distance to goal
+        if opponent_distance > self.previous_opponent_distance:
+            reward += 1
+        elif opponent_distance < self.previous_opponent_distance:
+            reward -= 1
+
+                # Update previous distances
+        self.previous_player_distance = player_distance
+        self.previous_opponent_distance = opponent_distance
+        
+        return reward
+    
+    def _calculate_distance_to_goal(self, player: int) -> int:
+        """
+        Calculate the shortest path distance to the goal for the given player.
+        
+        Args:
+            player: The player to calculate the distance for.
+            
+        Returns:
+            The shortest path distance to the goal.
+        """
+        path = QoridorRules.find_shortest_path(self.game, player)
+        if path is None:
+            return float('inf')  # No path to goal
+        return len(path) - 1
     
     def _get_observation(self, player: int = None) -> Dict[str, Any]:
         """
