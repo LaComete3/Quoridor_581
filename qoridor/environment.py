@@ -83,13 +83,13 @@ class QoridorEnv:
         done = self.game.is_game_over()
         reward = self._calculate_reward(done)
         
-        # Let opponent make a move if the game isn't over
-        if not done and self.opponent:
-            self._make_opponent_move()
-            # Check again if the game is over after opponent's move
-            done = self.game.is_game_over()
-            # Update reward based on new game state
-            reward = self._calculate_reward(done)
+        # # Let opponent make a move if the game isn't over
+        # if not done and self.opponent:
+        #     self._make_opponent_move()
+        #     # Check again if the game is over after opponent's move
+        #     done = self.game.is_game_over()
+        #     # Update reward based on new game state
+        #     reward = self._calculate_reward(done)
         
         # Increment step counter
         self.steps += 1
